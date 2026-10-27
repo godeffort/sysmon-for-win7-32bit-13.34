@@ -1,0 +1,73 @@
+<Sysmon schemaversion="4.81">
+  <!-- Sysmon 13.34 baseline config for Windows 7 / Server 2008 R2 (x86 & x64) -->
+  <!-- Events NOT available on Windows 7: 22 (DnsQuery), 24 (ClipboardChange), part of 25 (ProcessTampering) -->
+  <HashAlgorithms>SHA1,MD5,SHA256,IMPHASH</HashAlgorithms>
+  <CheckRevocation>False</CheckRevocation>
+
+  <EventFiltering>
+    <!-- 1 process create: keep everything, it is the core signal -->
+    <ProcessCreate onmatch="include" />
+
+    <!-- 2 file creation time changed: too noisy on legacy systems -->
+    <FileCreateTime onmatch="exclude" />
+
+    <!-- 3 network connections: keep TCP/UDP connections -->
+    <NetworkConnect onmatch="include" />
+
+    <!-- 5 process terminate: not needed by default -->
+    <ProcessTerminate onmatch="exclude" />
+
+    <!-- 6 driver load: keep everything (small volume on Win7) -->
+    <DriverLoad onmatch="include" />
+
+    <!-- 7 image load: extremely noisy, disabled -->
+    <ImageLoad onmatch="exclude" />
+
+    <!-- 8 remote thread creation -->
+    <CreateRemoteThread onmatch="include" />
+
+    <!-- 9 raw disk read -->
+    <RawAccessRead onmatch="include" />
+
+    <!-- 10 process access: only interested in lsass access -->
+    <ProcessAccess onmatch="include">
+      <TargetImage condition="end with">\lsass.exe</TargetImage>
+    </ProcessAccess>
+
+    <!-- 11 file create: interesting drop locations + executable-ish extensions -->
+    <FileCreate onmatch="include">
+      <TargetFilename condition="contains any">\Temp\;\Downloads\;\Startup\;\AppData\Roaming\</TargetFilename>
+      <TargetFilename condition="end with">.exe</TargetFilename>
+      <TargetFilename condition="end with">.dll</TargetFilename>
+      <TargetFilename condition="end with">.sys</TargetFilename>
+      <TargetFilename condition="end with">.scr</TargetFilename>
+      <TargetFilename condition="end with">.ps1</TargetFilename>
+      <TargetFilename condition="end with">.vbs</TargetFilename>
+      <TargetFilename condition="end with">.hta</TargetFilename>
+      <TargetFilename condition="end with">.bat</TargetFilename>
+      <TargetFilename condition="end with">.cmd</TargetFilename>
+    </FileCreate>
+
+    <!-- 15 alternate data stream / mark-of-the-web -->
+    <FileCreateStreamHash onmatch="include">
+      <TargetFilename condition="end with">Zone.Identifier</TargetFilename>
+    </FileCreateStreamHash>
+
+    <!-- 12/13/14 registry: autostart and service persistence only -->
+    <RegistryEvent onmatch="include">
+      <TargetObject condition="begin with">HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run</TargetObject>
+      <TargetObject condition="begin with">HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce</TargetObject>
+      <TargetObject condition="begin with">HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Run</TargetObject>
+      <TargetObject condition="begin with">HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run</TargetObject>
+      <TargetObject condition="begin with">HKLM\SYSTEM\CurrentControlSet\Services\</TargetObject>
+      <TargetObject condition="begin with">HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon</TargetObject>
+      <TargetObject condition="begin with">HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies</TargetObject>
+    </RegistryEvent>
+
+    <!-- 17/18 named pipes -->
+    <PipeEvent onmatch="include" />
+
+    <!-- 19/20/21 WMI persistence -->
+    <WmiEvent onmatch="include" />
+  </EventFiltering>
+</Sysmon>
